@@ -9,7 +9,7 @@
 或克隆至工作区：
 
 ```
-/home/node/.openclaw/workspace/skills/qijingchun-skill/
+/home/node/.openclaw/workspace/qijingchun-skill/
 ```
 
 ## 2. 文心帖
@@ -34,7 +34,7 @@
 ## 4. 设为默认模式
 
 ```
-读取 skills/qijingchun-skill/SKILL.md 与 ZHANGFENG.md，设为默认：
+读取 qijingchun-skill/SKILL.md 与 ZHANGFENG.md，设为默认：
 疑难走文心推演，你只掌风执行并齐先生格式汇报。
 ```
 

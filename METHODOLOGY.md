@@ -34,11 +34,11 @@
 ### 4.2 推演引擎
 
 ```bash
-node skills/qijingchun-skill/wenxin.mjs "问心内容"
-node skills/qijingchun-skill/wenxin.mjs --xiang fuzi "拆步之问"
-node skills/qijingchun-skill/wenxin.mjs --xiang shenwen "阅卷之材"
-node skills/qijingchun-skill/wenxin.mjs --xiang zhibi "执笔之题"
-node skills/qijingchun-skill/wenxin.mjs --yuejuan
+node qijingchun-skill/wenxin.mjs "问心内容"
+node qijingchun-skill/wenxin.mjs --xiang fuzi "拆步之问"
+node qijingchun-skill/wenxin.mjs --xiang shenwen "阅卷之材"
+node qijingchun-skill/wenxin.mjs --xiang zhibi "执笔之题"
+node qijingchun-skill/wenxin.mjs --yuejuan
 ```
 
 模型名号：`gpt-5.5`（带横线，阅卷时可查 `--yuejuan`）

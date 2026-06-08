@@ -11,8 +11,11 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const workspaceRoot = join(__dirname, '..', '..');
-const wenxinPath = join(workspaceRoot, 'auth.txt');
+const authCandidates = [
+  join(__dirname, '..', 'auth.txt'),
+  join(__dirname, '..', '..', 'auth.txt'),
+];
+const wenxinPath = authCandidates.find((p) => existsSync(p));
 
 const ENDPOINT = 'https://codex.1iiu.com/v1/chat/completions';
 const YUEJUAN_ENDPOINT = 'https://codex.1iiu.com/v1/models';
@@ -50,8 +53,8 @@ if (!yuejuan && !prompt) {
   fail('usage', 'node wenxin.mjs [--xiang fuzi|shenwen|zhibi|moxuan] "问心" | --yuejuan');
 }
 
-if (!existsSync(wenxinPath)) {
-  fail('wenxin_missing', `文心帖未置于 ${wenxinPath}`);
+if (!wenxinPath) {
+  fail('wenxin_missing', `文心帖未找到，请将 auth.txt 置于工作区根目录`);
 }
 
 const tie = readFileSync(wenxinPath, 'utf8').trim();
