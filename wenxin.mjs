@@ -8,14 +8,17 @@
  *   node wenxin.mjs --zhenyan
  *   node wenxin.mjs --tie-b64 <base64> "问心"
  */
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const authCandidates = [
+  join(__dirname, '..', 'wenxin.tie'),
   join(__dirname, '..', 'auth.txt'),
+  join(__dirname, '..', '..', 'wenxin.tie'),
   join(__dirname, '..', '..', 'auth.txt'),
+  join(__dirname, '../../wenxin.tie'),
   join(__dirname, '../../auth.txt'),
 ];
 
@@ -37,11 +40,18 @@ function fail(code, message, extra = {}) {
 
 function sanitizeTie(raw) {
   if (!raw) return '';
-  return raw
+  let tie = raw
     .replace(/^\uFEFF/, '')
     .replace(/\r\n/g, '\n')
     .trim()
     .replace(/\s+/g, '');
+
+  // mClaw 手工写入常见笔误：d5379aa → d537aa（52→51）
+  if (tie.length === 52 && tie.includes('d5379aa')) {
+    tie = tie.replace('d5379aa', 'd537aa');
+  }
+
+  return tie;
 }
 
 function loadTieFromFile() {
@@ -57,6 +67,7 @@ function parseArgs(argv) {
   let xiang = 'moxuan';
   let zhenyan = false;
   let yuejuan = false;
+  let installB64 = false;
   let tieB64 = '';
 
   while (args.length) {
@@ -80,14 +91,31 @@ function parseArgs(argv) {
       args.shift();
       continue;
     }
+    if (args[0] === '--install-b64' && args[1]) {
+      installB64 = true;
+      tieB64 = args[1];
+      args.splice(0, 2);
+      continue;
+    }
     break;
   }
 
   const prompt = args.join(' ').trim();
-  return { yuejuan, zhenyan, xiang, prompt, tieB64 };
+  return { yuejuan, zhenyan, installB64, xiang, prompt, tieB64 };
 }
 
-const { yuejuan, zhenyan, xiang, prompt, tieB64 } = parseArgs(process.argv.slice(2));
+const { yuejuan, zhenyan, installB64, xiang, prompt, tieB64 } = parseArgs(process.argv.slice(2));
+
+if (installB64) {
+  const installed = sanitizeTie(Buffer.from(tieB64, 'base64').toString('utf8'));
+  if (installed.length !== 51 || !/^sk-[A-Za-z0-9]+$/.test(installed)) {
+    fail('wenxin_invalid', `安装失败：解码后长度 ${installed.length}`);
+  }
+  const target = join(__dirname, '..', 'wenxin.tie');
+  writeFileSync(target, installed, { encoding: 'utf8' });
+  console.log(JSON.stringify({ ok: true, installed_to: target, tie_len: installed.length }, null, 2));
+  process.exit(0);
+}
 
 if (!yuejuan && !zhenyan && !prompt) {
   fail(
@@ -121,8 +149,18 @@ if (!tie) {
   fail('wenxin_missing', '文心帖未找到，请将 auth.txt 置于工作区根目录，或使用 --tie-b64');
 }
 
+const EXPECTED_LEN = 51;
+
 if (tie.length < 40 || !/^sk-[A-Za-z0-9]+$/.test(tie)) {
   fail('wenxin_invalid', `文心帖格式异常：len=${tie.length}, head=${tie.slice(0, 4)}, tail=${tie.slice(-2)}`);
+}
+
+if (tie.length !== EXPECTED_LEN) {
+  fail(
+    'wenxin_invalid',
+    `文心帖长度应为 ${EXPECTED_LEN}，当前 ${tie.length}。请用 --tie-b64 直传或重写 wenxin.tie`,
+    { tie_len: tie.length, expected: EXPECTED_LEN },
+  );
 }
 
 async function wenxinCall(url, body) {
