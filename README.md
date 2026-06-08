@@ -1,43 +1,46 @@
-# codex-relay-skill
+# codex-relay-skill v2
 
-OpenClaw / mClaw skill — relay complex tasks to an external OpenAI-compatible API while keeping the base Gateway model unchanged.
+**Orchestrator skill for mClaw** — local agent executes tools and reports; external `gpt-5.5` handles planning, analysis, and synthesis.
 
-## Why
-
-Hosted mClaw blocks `openclaw.json` edits and filters chat messages containing API keywords. This skill:
-
-- Installs into workspace (allowed)
-- Reads token from `auth.txt` with proper trim
-- Uses correct model id `gpt-5.5`
-- Invoked via safe trigger words: `外部推理`, `深度分析`, `relay`
-
-## Structure
+## Architecture
 
 ```
-codex-relay-skill/
-├── SKILL.md       # Agent skill entry (OpenClaw/Cursor compatible)
-├── relay.mjs      # Node relay script
-├── INSTALL.md     # mClaw install guide
-└── README.md
+User (WeChat) → mClaw (hands + mouth) → GPT 5.5 (brain) → mClaw executes → User report
 ```
 
-## Quick start (mClaw)
+## Files
+
+| File | Purpose |
+|------|---------|
+| `SKILL.md` | Main skill entry — triage rules, workflows, triggers |
+| `ROLES.md` | Role prompts: planner / analyst / reviewer / writer |
+| `ORCHESTRATION.md` | mClaw playbook — decision tree, report template |
+| `relay.mjs` | Node relay with `--role` support |
+| `INSTALL.md` | Install guide |
+
+## Install (mClaw)
 
 ```
 安装 skill：https://github.com/YOUR_USER/codex-relay-skill
 ```
 
-Then:
+Setup `workspace/auth.txt` (51 bytes, no newline).
+
+## Usage
 
 ```
-外部推理：解释 CAP 定理
+帮我看这个网页：https://example.com
+外部推理：设计一个高并发订单系统
+审查代码：src/app.js
+深度分析：Redis vs Memcached 选型
 ```
 
 ## Local test
 
 ```bash
-echo -n "sk-your-token" > ../auth.txt   # workspace root, NOT in repo
+echo -n "sk-xxx" > ../../auth.txt
 node relay.mjs "hello"
+node relay.mjs --role analyst "summarize: ..."
 node relay.mjs --models
 ```
 
