@@ -29,7 +29,7 @@
 | `EXAMPLES.md` | 示例 |
 | `wenxin.mjs` | 文心推演引擎 |
 
-## 安装（mClaw）
+## 安装（openClaw）
 
 ```
 安装 skill：https://github.com/YOUR_USER/qijingchun-skill
