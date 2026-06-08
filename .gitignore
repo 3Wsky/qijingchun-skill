@@ -1,0 +1,4 @@
+auth.txt
+auth.txt.bak
+.env
+node_modules/
