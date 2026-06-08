@@ -28,6 +28,7 @@
 | 请教齐先生：概念 | 无 | moxuan | 直接结论 |
 | 掌风铸器：写脚本 | 无 | zhibi→保存→exec | 代码路径+执行输出 |
 | 文心不通 | `wenxin.mjs --zhenyan` | — | 帖源/长度/连通 |
+| 齐先生作画 | `wenxin.mjs --huaxiang` | — | PNG+云盘链接 |
 
 ## 文心帖故障排查
 

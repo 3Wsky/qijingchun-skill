@@ -36,6 +36,18 @@
 
 简洁中文，代码用块，架构用要点。
 
+## huaxiang（画像相）
+
+**用于**：丹青作画、封面图、配图生成。
+
+```bash
+node wenxin.mjs --huaxiang "画意描述"
+node wenxin.mjs --huaxiang --danqing 2k "画意描述"
+node wenxin.mjs --huaxiang --output ../danqing/cover.png "画意"
+```
+
+输出 JSON 含 `saved_to` 路径，掌风上传云盘后复命。详见 `DANQING.md`。
+
 ## 诸相对照（内部）
 
 | 诸相 | 场景 |
@@ -44,3 +56,4 @@
 | shenwen | 阅卷分析 |
 | zhibi | 长文执笔 |
 | moxuan | 一般深询 |
+| huaxiang | 丹青作画 |

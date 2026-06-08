@@ -7,8 +7,9 @@
  *   node wenxin.mjs --yuejuan
  *   node wenxin.mjs --zhenyan
  *   node wenxin.mjs --tie-b64 <base64> "问心"
+ *   node wenxin.mjs --huaxiang [--danqing std|2k|4k] [--output path.png] "画意"
  */
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -24,7 +25,13 @@ const authCandidates = [
 
 const ENDPOINT = 'https://codex.1iiu.com/v1/chat/completions';
 const YUEJUAN_ENDPOINT = 'https://codex.1iiu.com/v1/models';
+const HUAXIANG_ENDPOINT = 'https://codex.1iiu.com/v1/images/generations';
 const MODEL = 'gpt-5.5';
+const DANQING_MODELS = {
+  std: 'gpt-image-2',
+  '2k': 'gpt-image-2-2k',
+  '4k': 'gpt-image-2-4k',
+};
 
 const XIANG = {
   fuzi: `你是夫子相，掌风使者替你执行。严格 JSON：{"analysis":"","actions":[{"tool":"","params":"","reason":""}],"report":"","deliverable":""}。report 中文≤300字。`,
@@ -68,6 +75,9 @@ function parseArgs(argv) {
   let zhenyan = false;
   let yuejuan = false;
   let installB64 = false;
+  let huaxiang = false;
+  let danqing = 'std';
+  let output = '';
   let tieB64 = '';
 
   while (args.length) {
@@ -97,14 +107,30 @@ function parseArgs(argv) {
       args.splice(0, 2);
       continue;
     }
+    if (args[0] === '--huaxiang') {
+      huaxiang = true;
+      args.shift();
+      continue;
+    }
+    if (args[0] === '--danqing' && args[1]) {
+      danqing = args[1];
+      args.splice(0, 2);
+      continue;
+    }
+    if (args[0] === '--output' && args[1]) {
+      output = args[1];
+      args.splice(0, 2);
+      continue;
+    }
     break;
   }
 
   const prompt = args.join(' ').trim();
-  return { yuejuan, zhenyan, installB64, xiang, prompt, tieB64 };
+  return { yuejuan, zhenyan, installB64, huaxiang, danqing, output, xiang, prompt, tieB64 };
 }
 
-const { yuejuan, zhenyan, installB64, xiang, prompt, tieB64 } = parseArgs(process.argv.slice(2));
+const { yuejuan, zhenyan, installB64, huaxiang, danqing, output, xiang, prompt, tieB64 } =
+  parseArgs(process.argv.slice(2));
 
 if (installB64) {
   const installed = sanitizeTie(Buffer.from(tieB64, 'base64').toString('utf8'));
@@ -117,10 +143,10 @@ if (installB64) {
   process.exit(0);
 }
 
-if (!yuejuan && !zhenyan && !prompt) {
+if (!yuejuan && !zhenyan && !huaxiang && !prompt) {
   fail(
     'usage',
-    'node wenxin.mjs [--xiang fuzi|shenwen|zhibi|moxuan] "问心" | --yuejuan | --zhenyan | --tie-b64 <b64> "问心"',
+    'node wenxin.mjs [--xiang fuzi|shenwen|zhibi|moxuan] "问心" | --yuejuan | --zhenyan | --huaxiang [--danqing std|2k|4k] [--output path.png] "画意"',
   );
 }
 
@@ -223,6 +249,55 @@ if (zhenyan) {
 if (yuejuan) {
   const data = await wenxinCall(YUEJUAN_ENDPOINT);
   console.log(JSON.stringify(data, null, 2));
+  process.exit(0);
+}
+
+if (huaxiang) {
+  const imageModel = DANQING_MODELS[danqing] || DANQING_MODELS.std;
+  const data = await wenxinCall(HUAXIANG_ENDPOINT, {
+    model: imageModel,
+    prompt,
+    n: 1,
+    size: '1024x1024',
+  });
+
+  const item = data?.data?.[0];
+  const b64 = item?.b64_json;
+  const url = item?.url;
+  if (!b64 && !url) {
+    fail('empty', '丹青未成', { detail: data });
+  }
+
+  let savedTo = '';
+  let bytes = 0;
+  if (b64) {
+    const buf = Buffer.from(b64, 'base64');
+    bytes = buf.length;
+    const target =
+      output ||
+      join(__dirname, '..', 'danqing', `danqing-${Date.now()}.png`);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, buf);
+    savedTo = target;
+  }
+
+  console.log(
+    JSON.stringify(
+      {
+        ok: true,
+        mode: 'huaxiang',
+        danqing,
+        model: imageModel,
+        prompt,
+        saved_to: savedTo || null,
+        bytes,
+        url: url || null,
+        has_b64: !!b64,
+      },
+      null,
+      2,
+    ),
+  );
   process.exit(0);
 }
 
