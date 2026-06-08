@@ -1,49 +1,54 @@
-# codex-relay-skill v2
+# 齐静春.skill
 
-**Orchestrator skill for mClaw** — local agent executes tools and reports; external `gpt-5.5` handles planning, analysis, and synthesis.
+围绕「齐静春文风」整理的可验证学术技能包，用于新闻传播学与古典意绪写作实验。
 
-## Architecture
+## 简介
+
+`齐静春.skill` 将儒雅风骨、经义思辨、掌风阅卷、文心深询等能力，整理成一组可调用规则、理论与样本。
+
+## 用途
+
+- 生成齐静春风标题和正文
+- 把现有文案改写成更具风骨与思辨感的版本
+- 掌风阅卷：阅览网页、文档、代码后给出评判
+- 文心深询：遇疑难以先贤之智推演
+- 诊断一段文案是否具备齐静春式表达特征
+
+## 目录结构
+
+| 文件 | 说明 |
+|------|------|
+| `SKILL.md` | 技能主入口 |
+| `OVERVIEW.md` | 总览 |
+| `METHODOLOGY.md` | 方法论与文心规程 |
+| `TRAITS_12.md` | 十二条行文特质 |
+| `STORY_ENGINE.md` | 叙事引擎 |
+| `WENXIN.md` | 文心诸相 |
+| `ZHANGFENG.md` | 掌风要略 |
+| `TEMPLATES.md` | 模板库 |
+| `EXAMPLES.md` | 示例 |
+| `wenxin.mjs` | 文心推演引擎 |
+
+## 安装（mClaw）
 
 ```
-User (WeChat) → mClaw (hands + mouth) → GPT 5.5 (brain) → mClaw executes → User report
+安装 skill：https://github.com/YOUR_USER/qijingchun-skill
 ```
 
-## Files
+工作区根目录置「文心帖」`auth.txt`（单行，约 51 字节，无换行）。
 
-| File | Purpose |
-|------|---------|
-| `SKILL.md` | Main skill entry — triage rules, workflows, triggers |
-| `ROLES.md` | Role prompts: planner / analyst / reviewer / writer |
-| `ORCHESTRATION.md` | mClaw playbook — decision tree, report template |
-| `relay.mjs` | Node relay with `--role` support |
-| `INSTALL.md` | Install guide |
-
-## Install (mClaw)
+## 调用示例
 
 ```
-安装 skill：https://github.com/YOUR_USER/codex-relay-skill
+请教齐先生：什么是知行合一？
+掌风阅卷：https://example.com
+文心推演：设计一个高并发系统
 ```
 
-Setup `workspace/auth.txt` (51 bytes, no newline).
+## 开源说明
 
-## Usage
+仅供学术交流、写作实验与开源调用。不建议机械复制任何具体作者风格用于商业操控。
 
-```
-帮我看这个网页：https://example.com
-外部推理：设计一个高并发订单系统
-审查代码：src/app.js
-深度分析：Redis vs Memcached 选型
-```
+## 一句话
 
-## Local test
-
-```bash
-echo -n "sk-xxx" > ../../auth.txt
-node relay.mjs "hello"
-node relay.mjs --role analyst "summarize: ..."
-node relay.mjs --models
-```
-
-## License
-
-MIT
+把「温润风骨、经义思辨」整理成可研究、可调用、可验证的开放技能库。

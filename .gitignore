@@ -1,4 +1,5 @@
 auth.txt
 auth.txt.bak
-.env
+.zhangfeng-cache/
+.relay-cache/
 node_modules/
