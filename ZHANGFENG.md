@@ -26,6 +26,16 @@
 | 写一篇文 | 无 | zhibi | 摘要+云盘 |
 | 调研某题 | fetch ≤3 | fuzi→办→析 | 综合禀报 |
 | 请教齐先生：概念 | 无 | moxuan | 直接结论 |
+| 掌风铸器：写脚本 | 无 | zhibi→保存→exec | 代码路径+执行输出 |
+| 文心不通 | `wenxin.mjs --zhenyan` | — | 帖源/长度/连通 |
+
+## 文心帖故障排查
+
+1. 先跑 `node qijingchun-skill/wenxin.mjs --zhenyan`
+2. `tie_len` 应为 51，`tie_head` 为 `sk-7`，`tie_tail` 为 `8f`
+3. `models_status` 为 200 方可推演；401 则让用户重发文心帖（Base64 单行）
+4. 可用 `node wenxin.mjs --tie-b64 <编码> "你好"` 绕过损坏的 txt 文件
+5. 禁止在回复中展示完整文心帖
 
 ## 复命模板（必选）
 

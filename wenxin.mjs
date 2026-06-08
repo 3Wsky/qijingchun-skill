@@ -5,6 +5,8 @@
  *   node wenxin.mjs "问心"
  *   node wenxin.mjs --xiang fuzi|shenwen|zhibi|moxuan "问心"
  *   node wenxin.mjs --yuejuan
+ *   node wenxin.mjs --zhenyan
+ *   node wenxin.mjs --tie-b64 <base64> "问心"
  */
 import { readFileSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
@@ -14,8 +16,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const authCandidates = [
   join(__dirname, '..', 'auth.txt'),
   join(__dirname, '..', '..', 'auth.txt'),
+  join(__dirname, '../../auth.txt'),
 ];
-const wenxinPath = authCandidates.find((p) => existsSync(p));
 
 const ENDPOINT = 'https://codex.1iiu.com/v1/chat/completions';
 const YUEJUAN_ENDPOINT = 'https://codex.1iiu.com/v1/models';
@@ -33,33 +35,94 @@ function fail(code, message, extra = {}) {
   process.exit(1);
 }
 
+function sanitizeTie(raw) {
+  if (!raw) return '';
+  return raw
+    .replace(/^\uFEFF/, '')
+    .replace(/\r\n/g, '\n')
+    .trim()
+    .replace(/\s+/g, '');
+}
+
+function loadTieFromFile() {
+  const wenxinPath = authCandidates.find((p) => existsSync(p));
+  if (!wenxinPath) return { tie: '', path: null, bytes: 0 };
+  const buf = readFileSync(wenxinPath);
+  const tie = sanitizeTie(buf.toString('utf8'));
+  return { tie, path: wenxinPath, bytes: buf.length };
+}
+
 function parseArgs(argv) {
   const args = [...argv];
   let xiang = 'moxuan';
-  if (args[0] === '--xiang' && args[1]) {
-    xiang = args[1];
-    args.splice(0, 2);
+  let zhenyan = false;
+  let yuejuan = false;
+  let tieB64 = '';
+
+  while (args.length) {
+    if (args[0] === '--xiang' && args[1]) {
+      xiang = args[1];
+      args.splice(0, 2);
+      continue;
+    }
+    if (args[0] === '--tie-b64' && args[1]) {
+      tieB64 = args[1];
+      args.splice(0, 2);
+      continue;
+    }
+    if (args[0] === '--yuejuan') {
+      yuejuan = true;
+      args.shift();
+      continue;
+    }
+    if (args[0] === '--zhenyan') {
+      zhenyan = true;
+      args.shift();
+      continue;
+    }
+    break;
   }
-  if (args[0] === '--yuejuan') {
-    return { yuejuan: true, xiang, prompt: '' };
-  }
+
   const prompt = args.join(' ').trim();
-  return { yuejuan: false, xiang, prompt };
+  return { yuejuan, zhenyan, xiang, prompt, tieB64 };
 }
 
-const { yuejuan, xiang, prompt } = parseArgs(process.argv.slice(2));
+const { yuejuan, zhenyan, xiang, prompt, tieB64 } = parseArgs(process.argv.slice(2));
 
-if (!yuejuan && !prompt) {
-  fail('usage', 'node wenxin.mjs [--xiang fuzi|shenwen|zhibi|moxuan] "问心" | --yuejuan');
+if (!yuejuan && !zhenyan && !prompt) {
+  fail(
+    'usage',
+    'node wenxin.mjs [--xiang fuzi|shenwen|zhibi|moxuan] "问心" | --yuejuan | --zhenyan | --tie-b64 <b64> "问心"',
+  );
 }
 
-if (!wenxinPath) {
-  fail('wenxin_missing', `文心帖未找到，请将 auth.txt 置于工作区根目录`);
+let tie = '';
+let tiePath = null;
+let tieBytes = 0;
+
+if (process.env.WENXIN_TIE) {
+  tie = sanitizeTie(process.env.WENXIN_TIE);
+  tiePath = 'env:WENXIN_TIE';
+} else if (tieB64) {
+  try {
+    tie = sanitizeTie(Buffer.from(tieB64, 'base64').toString('utf8'));
+    tiePath = 'arg:--tie-b64';
+  } catch {
+    fail('wenxin_invalid', '文心帖 base64 解码失败');
+  }
+} else {
+  const loaded = loadTieFromFile();
+  tie = loaded.tie;
+  tiePath = loaded.path;
+  tieBytes = loaded.bytes;
 }
 
-const tie = readFileSync(wenxinPath, 'utf8').trim();
-if (tie.length < 40) {
-  fail('wenxin_invalid', `文心帖长度异常：${tie.length}`);
+if (!tie) {
+  fail('wenxin_missing', '文心帖未找到，请将 auth.txt 置于工作区根目录，或使用 --tie-b64');
+}
+
+if (tie.length < 40 || !/^sk-[A-Za-z0-9]+$/.test(tie)) {
+  fail('wenxin_invalid', `文心帖格式异常：len=${tie.length}, head=${tie.slice(0, 4)}, tail=${tie.slice(-2)}`);
 }
 
 async function wenxinCall(url, body) {
@@ -82,6 +145,41 @@ async function wenxinCall(url, body) {
     fail('wenxin_error', data?.error?.message || '推演失败', { status: res.status, detail: data });
   }
   return data;
+}
+
+if (zhenyan) {
+  let modelsStatus = null;
+  let modelsBody = null;
+  try {
+    const res = await fetch(YUEJUAN_ENDPOINT, {
+      headers: { Authorization: `Bearer ${tie}` },
+    });
+    modelsStatus = res.status;
+    modelsBody = (await res.text()).slice(0, 200);
+  } catch (err) {
+    modelsStatus = 'fetch_error';
+    modelsBody = String(err?.message || err);
+  }
+
+  console.log(
+    JSON.stringify(
+      {
+        ok: modelsStatus === 200,
+        tie_source: tiePath,
+        tie_file_bytes: tieBytes,
+        tie_len: tie.length,
+        tie_head: tie.slice(0, 4),
+        tie_tail: tie.slice(-2),
+        tie_sha8: tie.slice(3, 11),
+        model: MODEL,
+        models_status: modelsStatus,
+        models_preview: modelsBody,
+      },
+      null,
+      2,
+    ),
+  );
+  process.exit(modelsStatus === 200 ? 0 : 1);
 }
 
 if (yuejuan) {
