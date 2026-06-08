@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# 文心推演引擎启动器（mClaw / Linux / macOS）
+DIR="$(cd "$(dirname "$0")" && pwd)"
+exec node "$DIR/wenxin.mjs" "$@"
